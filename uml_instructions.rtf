@@ -1,0 +1,303 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1265
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue233;\red255\green255\blue255;\red46\green174\blue187;
+\red200\green20\blue201;\red47\green180\blue29;\red193\green101\blue28;}
+\margl1440\margr1440\vieww14780\viewh12480\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\f0\b\fs26 \cf0 \ul \ulc0 Steps to implement user-mode linux:\
+\
+
+\fs24 1) Get kernel source code and build it:
+\b0 \ulnone \
+
+\b\fs26 \ul \
+
+\b0\fs24 \ulnone wget http://{\field{\*\fldinst{HYPERLINK "http://www.kernel.org/pub/linux/kernel/"}}{\fldrslt \cf2 \ul \ulc2 www.kernel.org}}/pub/linux/kernel/v3.0/linux-3.8.tar.bz2\
+\pard\pardeftab720
+\cf0 tar -xvjf linux-3.8.tar.bz2\
+\
+#cd linux-2.6.15.1\
+\
+\pard\pardeftab720
+
+\b \cf0 2)\ul Kernel Configuration\
+
+\b0 \
+\pard\pardeftab720
+\cf0 \ulnone #make ARCH=um defconfig\
+#make ARCH=um mrproper\
+#make ARCH=um menuconfig\
+	\
+\pard\pardeftab720\sa240
+\cf0 \cb3 Here is a listing of options that you may need to disable or change in order to build a fully functioning kernel .\
+\pard\pardeftab720
+\cf0 \cb1 General\
+	\'97>enable intiramfs/initrd support\
+\pard\pardeftab720
+\cf0 \cb3 \
+\pard\tx720\pardeftab720
+\cf0 Loadable module support\
+	->Enable loadable module support 	- Not Required\
+	  Note:We can't debug these so having this option enabled would be a waste\
+	  			\
+Networking\
+	-> Amateur Radio                     - Not Required\
+	-> IRDA (infrared) Subsystem Support - Not Required\
+	-> Blue tooth Subsytem Support       - Not Required\
+		\
+Character devices \
+	-> stderr console 	 - Enable \
+	-> virtual serial line 	 - Enable\
+	-> port channel support  - Enable\
+	-> pty channel support 	 - Enable \
+	-> tty channel support 	 - Enable\
+	-> xterm channel support - Enable\
+		\
+Block Devices\
+	-> Virtual block devices - Enable\
+		\
+UML Network Devices\
+	- You may or may not want to turn on the different network options under \
+	  these settings.\
+		\
+File systems\
+	- To make my kernel build faster I only enabled the couple of filesystems\
+	  that I knew that I would need (ext3/ext4 was one of them)\
+	\
+SCSI support\
+	-> SCSI support	- Disable\
+	\
+Multi-device support (RAID and LVM)\
+	-> Multiple devices driver support (RAID and LVM) - Disable\
+\
+Memory Technology Devices (MID)\
+	-> Memory Technology Device (MID) support - Disable\
+\
+Kernel Hacking \
+	-> Show timing information on printks - Enable\
+	-> Kernel debugging 		      - Enable\
+	-> Compile the Kernel with Debug Info - Enable\
+\pard\pardeftab720
+\cf0 \cb1 \
+\pard\pardeftab720
+
+\b \cf0 \ul \ulc0 3) Build\
+\pard\pardeftab720
+
+\b0 \cf0 \ulnone \
+#make ARCH=um linux	\
+\
+\pard\pardeftab720
+
+\b \cf0 \ul \ulc0 4) Creating your filesystem\
+\pard\pardeftab720
+
+\b0 \cf0 \ulnone \
+#dd if=/dev/zero of=/opt/uml/debian-root bs=1024K count=1000\
+#dd if=/dev/zero of=/opt/uml/secondary bs=1024K count=4000\
+\
+\pard\pardeftab720
+
+\i \cf0 The disk size can be changed accordingly\
+\pard\pardeftab720
+
+\i0 \cf0 \
+\pard\pardeftab720
+
+\b \cf0 \ul \ulc0 5) Initializing the filesystems\
+\pard\pardeftab720
+
+\b0 \cf0 \ulnone \
+#mkfs.ext4 /opt/uml/debian-root\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural
+
+\fs22 \cf0 \CocoaLigature0 #mkfs.ext4 /opt/uml/secondary \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural
+
+\fs24 \cf0 \CocoaLigature1 \
+
+\b \ul 6) Mounting root\
+
+\b0 \ulnone \
+\pard\pardeftab720
+\cf0 #mkdir /mnt/debian\
+#mount -o loop /opt/uml/debian-root /mnt/debian\
+\
+\pard\pardeftab720
+
+\b \cf0 \ul \ulc0 7) Debian Installation\
+\pard\pardeftab720
+
+\b0 \cf0 \ulnone \
+#\cb3 apt-get install debootstrap\cb1 \
+\
+#
+\fs22 \CocoaLigature0 sudo debootstrap --variant=buildd --arch amd64 wheezy /mnt/debian/ http://ftp.us.debian.org/debian\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural
+\cf0 #sudo apt-get update\
+#sudo apt-get upgrade\
+\
+
+\b \ul 8) FSTAB configuration
+\b0 \ulnone \
+\
+\pard\pardeftab720
+
+\fs24 \cf0 \cb3 \CocoaLigature1 	/dev/ubd0	/	  ext4	defaults	0 1\
+	proc		/proc  proc	defaults	0 0\
+\
+
+\b \ul 9) Host configuration\
+\
+\pard\pardeftab720\sa240
+
+\b0 \cf0 \cb1 \ulnone You will need to make sure that 
+\i /etc/hosts
+\i0  contains the following line. :  127.0.0.1 localhost
+\fs22 \CocoaLigature0 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural
+
+\b\fs24 \cf0 \ul \ulc0 10) \CocoaLigature1 Edit /etc/inittab\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural
+
+\b0\fs22 \cf0 \ulnone \CocoaLigature0 \
+
+\fs24 \CocoaLigature1 tweak the inittab to only use tty0 and add it to securetty\
+\pard\pardeftab720
+\cf0 \
+\pard\pardeftab720
+\cf0 #cp /mnt/debian/etc/inittab /mnt/debian/etc/inittab.save\
+\pard\pardeftab720
+\cf0 \
+#sed -i -e 's/(.*getty)/#$1/g' /mnt/debian/etc/inittab\
+\
+#echo "# Virtual environments rarely need more than one console:" >> /mnt/debian//etc/inittab\
+\
+#echo "c0:1235:respawn:/sbin/getty 38400 tty0 linux" >> /mnt/debian/etc/inittab\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural
+\cf0 \CocoaLigature0 \
+
+\i Just check above commands should not change the underlying /etc/inittab (if it exists). If using ubuntu, it does not have /etc/inittab.\
+In case the above script tries to changes underlying /etc/inittab, replace the contents of /etc/inittab (if any) with:\
+
+\i0 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural
+\cf4 id\cf5 :2:\cf6 initdefault\cf5 :\cf0 \
+\cf4 c0\cf5 :1235:\cf6 respawn\cf5 :\cf7 /sbin/getty\cf0  38400 tty0 linux
+\fs22 \
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural
+
+\i \cf0 In case, uml causes to change underlying /etc/inittab , in absence of above lines sysvinit can crash.
+\i0 \
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural
+
+\b\fs24 \cf0 \ul \ulc0 11) \CocoaLigature1 /etc/securetty Configuration\
+\pard\pardeftab720
+
+\b0 \cf0 \ulnone \
+#echo "tty0" >> /etc/securetty\
+#echo "ttys/0" >> /etc/securetty //if this command doesn\'92t work try #
+\i echo "vc/0" >> $TMPDIR/etc/securetty\
+
+\i0 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural
+
+\fs22 \cf0 \CocoaLigature0 \
+
+\b \ul 12) 
+\fs24 \cb3 \CocoaLigature1 \'a0/mnt/debian/dev
+\b0 \cb1 \ulnone \CocoaLigature0 \
+
+\fs22 \
+In my case no node was created to mount the filesystem too, we can check this by:\
+\pard\pardeftab720
+
+\fs24 \cf0 \CocoaLigature1 \
+#cd /mnt/debian/dev\
+#ls ubd*\
+\
+if this does not return ubd0 then,\
+\pard\pardeftab720
+
+\fs22 \cf0 \CocoaLigature0 \
+\pard\pardeftab720
+
+\fs24 \cf0 \CocoaLigature1 #mknod --mode=660 ubd0 b 98 0\
+#chown root:disk ubd0\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural
+
+\fs22 \cf0 \CocoaLigature0 \
+
+\b\fs24 \ul \
+13) Change root password to login into uml \
+\
+
+\b0 \ulnone There is a default password for root which I was not aware of hence I changed it:\
+\
+# cd /mnt/debian\
+# sudo chroot .\
+# passwd root\
+\
+Create new password. Now you can login as root inside uml.\
+
+\fs22 \
+\pard\pardeftab720
+
+\b\fs24 \cf0 \ul \ulc0 \CocoaLigature1 14) Checkout Graphene in secondary device
+\b0 \ulnone \
+\
+# mkdir /mnt/master	\
+# mount -o loop /opt/uml/secondary /mnt/master\
+\
+Consult wiki, to checkout Shim to run lmbench.\
+#sudo umount /mnt/master\
+
+\b \ul \
+15) Run kernel with uml\
+\
+\pard\pardeftab720
+
+\b0 \cf0 \ulnone cp ../linux-x.y/  (move to dir where you compelled linux binary)\ul \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural
+\cf0 \ulnone \CocoaLigature0 sudo ./linux ubd0=/opt/uml/debian-root mem=256m ubdb=/opt/uml/secondary \CocoaLigature1 \
+\pard\pardeftab720
+
+\b \cf0 \ul \ulc0 \
+16) To run native lmbench inside uml\
+\
+\pard\pardeftab720
+
+\b0 \cf0 \ulnone #mount /dev/ubdb  /mnt\
+\
+if get a mount error saying, ubdb does not exists: (can run mknod ubdb before entering uml too just like for ubd0)\
+\
+#mknod --mode=660 ubdb b 98 16\
+\
+now /mnt has Shim code. You can run lmbench for native test cases. Don\'92t have to rebuild it inside uml.\
+\pard\pardeftab720
+
+\b \cf0 \ul \ulc0 \
+17) Shutting down uml
+\b0 \ulnone \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural
+
+\fs22 \cf0 \CocoaLigature0 \
+#poweroff\
+\
+
+\b \ul \
+
+\fs24 18) Can download build packages directly:\
+\
+{\field{\*\fldinst{HYPERLINK "http://fs.devloop.org.uk/"}}{\fldrslt http://fs.devloop.org.uk/}}\
+\
+
+\b0 \ulnone We don\'92t need to go through the above steps , can directly download debian and kernel packages front he above link and run uml
+\fs22 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural
+
+\fs24 \cf0 \CocoaLigature1 \
+}
